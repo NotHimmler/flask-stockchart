@@ -3,3 +3,5 @@ static/json/*
 ticker-csv/*
 !static/json/.gitkeep
 !ticker-csv/.gitkeep
+__pycache__/
+.vscode/
