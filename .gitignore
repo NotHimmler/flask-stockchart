@@ -1,3 +1,5 @@
 node_modules/
 static/json/*
 ticker-csv/*
+!static/json/.gitkeep
+!ticker-csv/.gitkeep
