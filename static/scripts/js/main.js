@@ -10756,7 +10756,6 @@ var AddStock = React.createClass({displayName: "AddStock",
     },
 
     addStock: function(){
-        console.log(names);
         if(this.state.ticker != "" && names.indexOf(this.state.ticker) < 0){
             names[names.length] =this.state.ticker;
             redrawChart();
