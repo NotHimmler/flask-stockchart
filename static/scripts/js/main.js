@@ -504,6 +504,20 @@ E(b))});H.prototype.setCompare=function(a,b){this.isXAxis||(n(this.series,functi
 this.clipBox.width=this.xAxis.len,this.clipBox.height=this.yAxis.len):this.chart[this.sharedClipKey]?this.chart[this.sharedClipKey].attr({width:this.xAxis.len,height:this.yAxis.len}):this.clipBox&&(this.clipBox.width=this.xAxis.len,this.clipBox.height=this.yAxis.len));a.call(this)})})(K);return K});
 
 },{}],2:[function(require,module,exports){
+/*
+ Highcharts JS v5.0.7 (2017-01-17)
+ Plugin for displaying a message when there is no data visible in chart.
+
+ (c) 2010-2016 Highsoft AS
+ Author: Oystein Moseng
+
+ License: www.highcharts.com/license
+*/
+(function(d){"object"===typeof module&&module.exports?module.exports=d:d(Highcharts)})(function(d){(function(c){function d(){return!!this.points.length}function g(){this.hasData()?this.hideNoData():this.showNoData()}var h=c.seriesTypes,e=c.Chart.prototype,f=c.getOptions(),k=c.extend,l=c.each;k(f.lang,{noData:"No data to display"});f.noData={position:{x:0,y:0,align:"center",verticalAlign:"middle"}};f.noData.style={fontWeight:"bold",fontSize:"12px",color:"#666666"};l(["pie","gauge","waterfall","bubble",
+"treemap"],function(a){h[a]&&(h[a].prototype.hasData=d)});c.Series.prototype.hasData=function(){return this.visible&&void 0!==this.dataMax&&void 0!==this.dataMin};e.showNoData=function(a){var b=this.options;a=a||b.lang.noData;b=b.noData;this.noDataLabel||(this.noDataLabel=this.renderer.label(a,0,0,null,null,null,b.useHTML,null,"no-data"),this.noDataLabel.attr(b.attr).css(b.style),this.noDataLabel.add(),this.noDataLabel.align(k(this.noDataLabel.getBBox(),b.position),!1,"plotBox"))};e.hideNoData=function(){this.noDataLabel&&
+(this.noDataLabel=this.noDataLabel.destroy())};e.hasData=function(){for(var a=this.series,b=a.length;b--;)if(a[b].hasData()&&!a[b].options.isInternal)return!0;return!1};e.callbacks.push(function(a){c.addEvent(a,"load",g);c.addEvent(a,"redraw",g)})})(d)});
+
+},{}],3:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v3.1.1
  * https://jquery.com/
@@ -10725,11 +10739,43 @@ if ( !noGlobal ) {
 return jQuery;
 } );
 
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 var Header = require('./header');
 var Highcharts = require('highcharts/highstock.js');
+var nodata = require('highcharts/modules/no-data-to-display.js');
 var $ = require('jquery');
 
+var seriesOptions = [], seriesCounter = 0, names = [];
+var location = window.location;
+//var ip = location.split("/")[2];
+console.log(location);
+
+var AddStock = React.createClass({displayName: "AddStock",
+    getInitialState: function(){
+        return ({ticker: ""});
+    },
+
+    addStock: function(){
+        console.log(names);
+        if(this.state.ticker != "" && names.indexOf(this.state.ticker) < 0){
+            names[names.length] =this.state.ticker;
+            redrawChart();
+        }
+    },
+
+    handleChange(event) {
+        this.setState({ticker: (ReactDOM.findDOMNode(this.refs.ticker).value)});
+    },
+
+    render: function(){
+        return (
+            React.createElement("div", null, 
+                React.createElement("input", {type: "text", onChange: this.handleChange.bind(this), ref: "ticker", name: "input"}), 
+                React.createElement("button", {onClick: this.addStock}, "Add")
+            )
+        )
+    }
+});
 
 var App = React.createClass({displayName: "App",
     getInitialState: function(){
@@ -10743,6 +10789,9 @@ var App = React.createClass({displayName: "App",
                 React.createElement("div", {className: "app-body"}, 
                     React.createElement("div", {className: "flex-row"}, 
                         React.createElement("div", {id: "container"})
+                    ), 
+                    React.createElement("div", {className: "flex-row"}, 
+                        React.createElement(AddStock, null)
                     )
                 )
             )
@@ -10754,34 +10803,69 @@ ReactDOM.render(
     React.createElement(App, null), document.getElementById('main')
 );
 
-$(function () {
+function createChart(){
+    Highcharts.stockChart('container', {
+        rangeSelecter: {
+            selected: 4
+        },
 
-    $.getJSON('http://127.0.0.1:5000/get_data/GOOG', function (data) {
-        // Create the chart
-        Highcharts.stockChart('container', {
-
-
-            rangeSelector: {
-                selected: 1
-            },
-
-            title: {
-                text: 'GOOG Stock Price'
-            },
-
-            series: [{
-                name: 'GOOG',
-                data: data,
-                tooltip: {
-                    valueDecimals: 2
+        yAxis: {
+            labels: {
+                formatter: function(){
+                    return (this.value > 0 ? ' + ' : '') + this.value + '%';
                 }
-            }]
-        });
-    });
+            },
 
-});
+            plotLines: [{
+                value: 0,
+                width: 2,
+                color: 'silver'
+            }],
+            
+            showEmpty: true
+        },
 
-},{"./header":4,"highcharts/highstock.js":1,"jquery":2}],4:[function(require,module,exports){
+        xAxis: {
+            showEmpty: true
+        },
+
+        plotOptions: {
+            series: {
+                compare: 'percent',
+                showInNavigator: true
+            }
+        },
+
+        tooltip: {
+            valueDecimals: 2,
+            split: true
+        },
+
+        series: seriesOptions
+    })
+}
+
+function redrawChart(){
+    seriesCounter = 0;
+    $.each(names, function(i, name){
+        $.getJSON('http://'+location.host+'/get_data/'+name, function(data){
+            seriesOptions[i] = {
+                name: name,
+                data: data
+            };
+
+            seriesCounter += 1;
+
+            if(seriesCounter === names.length){
+                createChart();
+            }
+        })
+    })
+}
+
+createChart();
+
+},{"./header":5,"highcharts/highstock.js":1,"highcharts/modules/no-data-to-display.js":2,"jquery":3}],5:[function(require,module,exports){
 var Header = React.createClass({displayName: "Header",
     render: function(){
         return (
@@ -10792,4 +10876,4 @@ var Header = React.createClass({displayName: "Header",
 
 module.exports = Header;
 
-},{}]},{},[3]);
+},{}]},{},[4]);
