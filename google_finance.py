@@ -3,6 +3,7 @@ import urllib.request
 import csv
 import calendar
 import json
+from pathlib import Path
 
 #Get CSV file from google finance, historical
 #Parse CSV to JSON
@@ -15,12 +16,19 @@ __month_names__ = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"
 
 #Gets historical data 1 year from today
 def get_historical_data(ticker_query):
-    try:
-        urllib.request.urlretrieve(create_query_string(ticker_query), "./ticker-csv/{0}.csv".format(ticker_query))
+    my_file = Path("./ticker-csv/{0}.csv".format(ticker_query))
+
+    if(not my_file.is_file()):
+        try:
+            urllib.request.urlretrieve(create_query_string(ticker_query), "./ticker-csv/{0}.csv".format(ticker_query))
+            return True
+        except urllib.error.HTTPError:
+            print("There was an error")
+            return False
+    else:
         return True
-    except urllib.error.HTTPError:
-        print("There was an error")
-        return False
+
+    
 
 def format_date_for_api_request(date):
     day = date.day
@@ -30,19 +38,14 @@ def format_date_for_api_request(date):
     monthName = __month_names__[month-1]
 
     if day < 10:
-        return "{0}+0{1}%2C+{2}".format(monthName,day,year)
+        return "{0}+0{1}%2C+{2}".format(monthName, day, year)
     else:
-        return "{0}+{1}%2C+{2}".format(monthName,day,year)
+        return "{0}+{1}%2C+{2}".format(monthName, day, year)
 
 def create_query_string(ticker):
     today = date.today()
-    year_ago = today - timedelta(days=366)
+    year_ago = today - timedelta(days=367)
     return __query_string__.format(ticker, format_date_for_api_request(year_ago),format_date_for_api_request(today))
-
-#with open("./ticker-csv/GOOG.csv", newline="") as csvfile:
-#    reader = csv.reader(csvfile)
-#    for row in reader:
-#        print(row)
 
 def timestamp_from_api_date(date_string):
     date_from_string = datetime.strptime(date_string, "%d-%b-%y")
