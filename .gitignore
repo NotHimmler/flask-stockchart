@@ -5,3 +5,4 @@ ticker-csv/*
 !ticker-csv/.gitkeep
 __pycache__/
 .vscode/
+flask-setup.py
