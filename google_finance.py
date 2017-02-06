@@ -28,8 +28,6 @@ def get_historical_data(ticker_query):
     else:
         return True
 
-    
-
 def format_date_for_api_request(date):
     day = date.day
     month = date.month
