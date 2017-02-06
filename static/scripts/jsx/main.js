@@ -83,7 +83,7 @@ var App = React.createClass({
             $.each(names, function(i, name){
                 context.addTicker(name);
             });
-            console.log("ComponentDidMount calling redrawChart");
+
             redrawChart();
         })
     },
@@ -101,7 +101,6 @@ var App = React.createClass({
             addName(ticker);
             tickers.push(<Ticker name={ticker} removeTicker={this.removeTicker}/>);
             this.setState({tickers: tickers}, function(){
-                console.log("addTicker calling redrawChart");
                 redrawChart();
             });
         }
@@ -124,8 +123,7 @@ var App = React.createClass({
             index++;
         }
 
-        this.setState({tickers: tickers}, function(){
-        });
+        this.setState({tickers: tickers});
     },
 
     render: function() {
@@ -206,7 +204,6 @@ function createChart(){
 }
 
 function redrawChart(){
-    console.log("Redraw Chart Called");
     seriesCounter = 0;
     seriesOptions = [];
 
