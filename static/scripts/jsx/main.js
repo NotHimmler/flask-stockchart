@@ -1,12 +1,21 @@
-var Header = require('./header');
 var Highcharts = require('highcharts/highstock.js');
 var nodata = require('highcharts/modules/no-data-to-display.js');
 var $ = require('jquery');
 
 var seriesOptions = [], seriesCounter = 0, names = [];
 var location = window.location;
-//var ip = location.split("/")[2];
-console.log(location);
+
+var socket = io.connect('http://' + document.domain + ":" + location.port);
+
+function removeName(name){
+    var index = names.indexOf(name);
+
+    if(index >= 0){
+        names.splice(index, 1);
+    }
+}
+
+var Header = require('./header');
 
 var AddStock = React.createClass({
     getInitialState: function(){
@@ -14,8 +23,11 @@ var AddStock = React.createClass({
     },
 
     addStock: function(){
+        var context = this;
         if(this.state.ticker != "" && names.indexOf(this.state.ticker) < 0){
-            names[names.length] =this.state.ticker;
+            names[names.length] = this.state.ticker;
+            socket.emit('add', this.state.ticker);
+            this.props.addTicker(this.state.ticker);
             redrawChart();
         }
     },
@@ -34,12 +46,96 @@ var AddStock = React.createClass({
     }
 });
 
+var Ticker = React.createClass({
+    getInitialState: function(){
+        return ({});
+    },
+
+    handleClick: function(){
+        this.props.removeTicker(this.props.name);
+        socket.emit("remove",this.props.name);
+    },
+
+    render: function(){
+        return (
+            <div className="ticker">
+                {this.props.name}
+                <button onClick={this.handleClick}>X</button>
+            </div>
+        )
+    }
+});
+
 var App = React.createClass({
     getInitialState: function(){
-        return {};
+        return ({tickers: []});
+    },
+
+    componentDidMount: function(){
+        var context = this;
+        $.getJSON("http://"+location.host+"/get_tickers", function(data){
+            names = data;
+            $.each(names, function(i, name){
+                context.addTicker(name);
+            })
+            redrawChart();
+        })
+    },
+
+    addTicker: function(ticker){
+        var tickers = this.state.tickers;
+        var tickerAlreadyAdded = false;
+        for(var i = 0; i < tickers.length; i++){
+            if(tickers[i].props.name === ticker){
+                tickerAlreadyAdded = true;
+            }
+        }
+
+        if(!tickerAlreadyAdded){
+            tickers.push(<Ticker name={ticker} removeTicker={this.removeTicker}/>);
+            this.setState({tickers: tickers});
+        }
+    },
+
+    removeTicker: function(ticker){
+        var tickers = this.state.tickers;
+        var index = 0;
+        var tickerFound = false;
+
+        removeName(ticker);
+
+        while(index < tickers.length && !tickerFound){
+            if(tickers[index].props.name == ticker){
+                tickers.splice(index,1);
+                tickerFound = true;
+            }
+            index++;
+        }
+
+        this.setState({tickers: tickers}, function(){
+            seriesOptions = [];
+            if(names.length == 0){
+                createChart();
+            } else {
+                redrawChart();
+            }
+        });
     },
 
     render: function() {
+        var context = this;
+        socket.on('added', function(name){
+            names.push(name);
+            context.addTicker(name);
+            redrawChart();
+        });
+
+        socket.on('removed', function(name){
+            context.removeTicker(name);
+        });
+
+        var tickers = this.state.tickers;
+
         return (
             <div>
                 <Header />
@@ -47,8 +143,11 @@ var App = React.createClass({
                     <div className="flex-row">
                         <div id="container"></div>
                     </div>
-                    <div className="flex-row">
-                        <AddStock />
+                    <div className="flex-row tickers">
+                        {tickers}
+                    </div>
+                    <div className="flex-row add-ticker">
+                        <AddStock addTicker={this.addTicker} />
                     </div>
                 </div>
             </div>
@@ -104,6 +203,7 @@ function createChart(){
 
 function redrawChart(){
     seriesCounter = 0;
+    seriesOptions = [];
     $.each(names, function(i, name){
         $.getJSON('http://'+location.host+'/get_data/'+name, function(data){
             seriesOptions[i] = {
@@ -119,5 +219,7 @@ function redrawChart(){
         })
     })
 }
+
+
 
 createChart();
