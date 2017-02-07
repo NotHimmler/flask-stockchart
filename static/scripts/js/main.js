@@ -10776,7 +10776,6 @@ var AddStock = React.createClass({displayName: "AddStock",
         var context = this;
         if(this.state.ticker != "" && names.indexOf(this.state.ticker) < 0){
             socket.emit('add', this.state.ticker);
-            this.props.addTicker(this.state.ticker);
         }
     },
 
