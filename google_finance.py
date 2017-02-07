@@ -3,6 +3,7 @@ import urllib.request
 import csv
 import calendar
 import json
+import os
 from pathlib import Path
 
 #Get CSV file from google finance, historical
@@ -16,17 +17,30 @@ __month_names__ = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep"
 
 #Gets historical data 1 year from today
 def get_historical_data(ticker_query):
-    my_file = Path("./ticker-csv/{0}.csv".format(ticker_query))
+    filename = './ticker-csv/{0}.csv'.format(ticker_query)
+    my_file = Path(filename)
 
     if(not my_file.is_file()):
         try:
-            urllib.request.urlretrieve(create_query_string(ticker_query), "./ticker-csv/{0}.csv".format(ticker_query))
+            urllib.request.urlretrieve(create_query_string(ticker_query), filename)
             return True
         except urllib.error.HTTPError:
             print("There was an error")
             return False
     else:
-        return True
+        t_millis = os.path.getmtime(filename)
+        file_datetime = datetime.fromtimestamp(t_millis)
+        file_date = file_datetime.date()
+        today = date.today()
+        if (today - file_date) > timedelta(days=1):
+            try:
+                urllib.request.urlretrieve(create_query_string(ticker_query), filename)
+                return True
+            except urllib.error.HTTPError:
+                print("There was an error")
+                return False
+        else:
+            return True
 
 def format_date_for_api_request(date):
     day = date.day
